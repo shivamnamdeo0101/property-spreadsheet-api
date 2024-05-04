@@ -4,7 +4,6 @@ const { google } = require('googleapis');
 const dotenv = require('dotenv');
 const path = require('path');
 const cors = require('cors');
-require('dotenv').config(); // Load environment variables from .env file
 
 dotenv.config();
 
@@ -13,14 +12,37 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 
-process.env.GOOGLE_APPLICATION_CREDENTIALS = path.join(__dirname, 'cred.json');
+const {
+    GOOGLE_SERVICE_ACCOUNT_TYPE,
+    GOOGLE_PROJECT_ID,
+    GOOGLE_PRIVATE_KEY_ID,
+    GOOGLE_PRIVATE_KEY,
+    GOOGLE_CLIENT_EMAIL,
+    GOOGLE_CLIENT_ID,
+    GOOGLE_AUTH_URI,
+    GOOGLE_TOKEN_URI,
+    GOOGLE_AUTH_PROVIDER_CERT_URL,
+    GOOGLE_CLIENT_CERT_URL,
+    GOOGLE_UNIVERSE_DOMAIN
+} = process.env;
+
 
 const auth = new google.auth.GoogleAuth({
-    keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS, // Path to your credentials JSON file
+    credentials: {
+        type: GOOGLE_SERVICE_ACCOUNT_TYPE,
+        project_id: GOOGLE_PROJECT_ID,
+        private_key_id: GOOGLE_PRIVATE_KEY_ID,
+        private_key: GOOGLE_PRIVATE_KEY.split(String.raw`\n`).join('\n'),
+        client_email: GOOGLE_CLIENT_EMAIL,
+        client_id: GOOGLE_CLIENT_ID,
+        auth_uri: GOOGLE_AUTH_URI,
+        token_uri: GOOGLE_TOKEN_URI,
+        auth_provider_x509_cert_url: GOOGLE_AUTH_PROVIDER_CERT_URL,
+        client_x509_cert_url: GOOGLE_CLIENT_CERT_URL,
+        universe_domain: GOOGLE_UNIVERSE_DOMAIN
+    },
     scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly']
 });
-
-
 
 const sheets = google.sheets({ version: 'v4', auth });
 
@@ -43,29 +65,26 @@ const keyMapping = {
     "Form Link": "form_link",
     "Latitude": "latitude",
     "Longitude": "longitude"
-  }
+};
 
-  function mapKeys(obj, keyMap) {
+function mapKeys(obj, keyMap) {
     const mappedObj = {};
     for (const key in obj) {
-      if (obj.hasOwnProperty(key)) {
-        const mappedKey = keyMap[key] || key; // Use mapped key or original key
-        mappedObj[mappedKey] = obj[key];
-      }
+        if (obj.hasOwnProperty(key)) {
+            const mappedKey = keyMap[key] || key; // Use mapped key or original key
+            mappedObj[mappedKey] = obj[key];
+        }
     }
     return mappedObj;
-  }
-
+}
 
 app.get('/api/data', async (req, res) => {
     try {
-
         const page = parseInt(req.query.page) || 1;
         const pageSize = parseInt(req.query.pageSize) || 10;
         const startRow = (page - 1) * pageSize + 1; // Assuming the header is in the first row
         const endRow = startRow + pageSize - 1;
         const range = `AppSheet!A${startRow}:R${endRow}`; // Adjust column range as per your data
-
 
         const response = await sheets.spreadsheets.values.get({
             spreadsheetId: '122AFX4GdjHwIod4saH8DbmPAMZIjRgAl9f7DNcyIhWk', // Replace with your Google Spreadsheet ID
@@ -73,8 +92,6 @@ app.get('/api/data', async (req, res) => {
         });
 
         const data = response.data.values;
-
-        console.log(data)
 
         if (!data || data.length === 0) {
             return res.status(404).json({ error: 'No data found' });
@@ -88,22 +105,16 @@ app.get('/api/data', async (req, res) => {
             headers.forEach((header, index) => {
                 obj[header] = row[index];
             });
-
             const mappedData = mapKeys(obj, keyMapping);
-
-
             return mappedData;
         });
-
 
         res.json({
             success: true,
             resCode: 200,
             totalRows: jsonData.length,
-            response: jsonData,
+            response: jsonData
         });
-
-
         // res.json({
         //     success: true,
         //     resCode: 200,
@@ -114,8 +125,6 @@ app.get('/api/data', async (req, res) => {
         //         totalRows: jsonData.length,
         //     },
         // });
-
-
     } catch (error) {
         console.error('Error retrieving Google Sheets data:', error);
         res.status(500).json({ error: 'Internal Server Error' });
