@@ -97,10 +97,18 @@ app.get('/api/data', async (req, res) => {
             return res.status(404).json({ error: 'No data found' });
         }
 
-        const headers = data.shift();
+        const rowsWithData = data.filter(row => row.some(cell => cell.trim() !== ''));
+
+        // Log skipped rows with empty columns
+        const skippedRows = data.filter(row => !row.every(cell => cell.trim() !== ''));
+        skippedRows.forEach(row => {
+            console.log('Skipped row due to empty column:', row);
+        });
+
+        const headers = rowsWithData.shift();
 
         // Constructing JSON
-        const jsonData = data.map(row => {
+        const jsonData = rowsWithData.map(row => {
             const obj = {};
             headers.forEach((header, index) => {
                 obj[header] = row[index];
