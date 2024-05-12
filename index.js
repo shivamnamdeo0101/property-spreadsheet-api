@@ -57,6 +57,7 @@ const keyMapping = {
     "Location": "location",
     "Property Type": "property_type",
     "Title": "title",
+    "Description":"description",
     "Thumbnail": "thumbnail",
     "Image1": "image1",
     "image2": "image2",
