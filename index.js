@@ -79,6 +79,32 @@ function mapKeys(obj, keyMap) {
     return mappedObj;
 }
 
+app.post('/api/add-response', async (req, res) => {
+
+    try{
+
+        console.log(req.body)
+
+        const values = [
+            ['Value1', 'Value2', 'Value3'] // Add your values here
+        ];
+
+        // Make a request to append the row to the spreadsheet
+        const response = await sheets.spreadsheets.values.append({
+            spreadsheetId: '1RBIi-i17Gx0vyftAVBaH_s8lkhloNPllpSVPt3YexE4', // Replace with your Google Spreadsheet ID
+            range: 'RESPONSE_SHEET', // Replace with the sheet name
+            valueInputOption: 'RESPONSE_SHEET',
+            resource: { values }
+        });
+
+        console.log(response)
+
+    }catch (error) {
+        console.error('Error retrieving Google Sheets data:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
 app.get('/api/data', async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
@@ -92,7 +118,7 @@ app.get('/api/data', async (req, res) => {
             range: 'AppSheet'
         });
 
-        const data = response.data.values;
+        let data = response.data.values;
 
         if (!data || data.length === 0) {
             return res.status(404).json({ error: 'No data found' });
@@ -109,7 +135,7 @@ app.get('/api/data', async (req, res) => {
         const headers = rowsWithData.shift();
 
         // Constructing JSON
-        const jsonData = rowsWithData.map(row => {
+        let jsonData = rowsWithData.map(row => {
             const obj = {};
             headers.forEach((header, index) => {
                 obj[header] = row[index];
@@ -117,6 +143,15 @@ app.get('/api/data', async (req, res) => {
             const mappedData = mapKeys(obj, keyMapping);
             return mappedData;
         });
+
+        jsonData =  jsonData.map((row, index) => {
+            return {
+                id: index + 1, // Generating a 1-based row ID
+                ...row
+            };
+        });
+        
+        console.log("jsonData",jsonData)
 
         res.json({
             success: true,
