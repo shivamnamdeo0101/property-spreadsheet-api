@@ -99,9 +99,24 @@ app.post('/api/add-response', async (req, res) => {
 
         console.log(response)
 
+        if(response?.status == 200){
+            res.json({
+                success: true,
+                resCode: 200,
+                response: response
+            });
+        }else{
+            res.json({
+                success: false,
+                resCode: response?.status,
+                response: response
+            });
+        }
+
+
     }catch (error) {
         console.error('Error retrieving Google Sheets data:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
+        res.status(500).json({ error: error });
     }
 });
 
